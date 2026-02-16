@@ -3,3 +3,4 @@ qiskit-aer
 qiskit-algorithms
 numpy
 pytest
+matplotlib

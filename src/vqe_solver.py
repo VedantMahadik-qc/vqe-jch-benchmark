@@ -5,26 +5,32 @@ from qiskit.primitives import StatevectorEstimator
 
 def run_vqe_jch(hamiltonian, maxiter: int = 300):
     """
-    Runs a Variational Quantum Eigensolver (VQE) to find the 
-    ground state energy of the provided Hamiltonian.
+    Runs a Variational Quantum Eigensolver (VQE) and tracks convergence.
     """
-    # 1. Choose the backend primitive (Statevector for exact simulation)
     estimator = StatevectorEstimator()
-    
-    # 2. Define the hardware-efficient ansatz
-    # 'ry' rotations explore the state space, 'cz' creates entanglement
     ansatz = TwoLocal(
         num_qubits=hamiltonian.num_qubits, 
         rotation_blocks='ry', 
         entanglement_blocks='cz', 
-        reps=2 # Number of repetition layers
+        reps=2 
     )
-    
-    # 3. Define the classical optimizer
     optimizer = COBYLA(maxiter=maxiter)
     
-    # 4. Initialize and run VQE
-    vqe = VQE(estimator=estimator, ansatz=ansatz, optimizer=optimizer)
+    # List to store the energy at each iteration
+    energy_history = []
+    
+    # The callback function that VQE calls at every step
+    def store_intermediate_result(eval_count, parameters, mean, std):
+        energy_history.append(mean)
+        
+    vqe = VQE(
+        estimator=estimator, 
+        ansatz=ansatz, 
+        optimizer=optimizer,
+        callback=store_intermediate_result  # Pass the callback here
+    )
+    
     result = vqe.compute_minimum_eigenvalue(hamiltonian)
     
-    return result
+    # We now return BOTH the final result and the history array
+    return result, energy_history
